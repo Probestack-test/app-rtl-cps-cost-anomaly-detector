@@ -7,7 +7,6 @@ import com.probestack.forgestudio.design.logging.BusinessOperationLogger;
 import com.probestack.forgestudio.design.model.Anomaly;
 import com.probestack.forgestudio.design.model.AnomalyList;
 import com.probestack.forgestudio.design.model.AnomalyRelatedChangesInner;
-import com.probestack.forgestudio.design.model.CloudProvidersEnum;
 import com.probestack.forgestudio.design.model.DetectionScan;
 import com.probestack.forgestudio.design.model.TriggerScanRequest;
 import java.lang.reflect.Method;
@@ -282,29 +281,6 @@ public class AnomaliesService {
      */
     private Long businessDurationMs(long startedAt) {
         return (System.nanoTime() - startedAt) / 1_000_000L;
-    }
-
-    /**
-     * Maps TriggerScanRequest entity to CloudProvidersEnum response DTO.
-     *
-     * <p>Uses Spring BeanUtils.copyProperties() to automatically copy matching fields.</p>
-     *
-     * @param entity the entity to map
-     * @return mapped response DTO
-     */
-    private CloudProvidersEnum mapToCloudProvidersEnum(TriggerScanRequest entity) {
-        // Create new response object
-        CloudProvidersEnum response = new CloudProvidersEnum();
-        // Copy matching properties from entity to response
-        BeanUtils.copyProperties(entity, response);
-        copyGeneratedId(entity, response);
-        // 
-        // TODO: Add custom field mappings here if needed
-        // Example:
-        //   response.setCustomField(entity.getSourceField());
-        //   response.setMessage("Success");
-        // 
-        return response;
     }
 
     /**

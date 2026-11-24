@@ -64,6 +64,7 @@ public class SecurityConfig {
     private static final String[] PUBLIC_ENDPOINTS = {
             "/",
             "/error",
+            "/actuator",
             "/actuator/health",
             "/actuator/health/**",
             "/actuator/info",
@@ -74,7 +75,10 @@ public class SecurityConfig {
             "/actuator/loggers/**",
             "/swagger-ui.html",
             "/swagger-ui/**",
-            "/v3/api-docs/**"
+            "/v3/api-docs/**",
+            "/forgecatalog-ui/**",
+            "/forgecatalog-ui-v2/**",
+            "/forgecatalog-ui-v3/**"
     };
 
     /**
