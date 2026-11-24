@@ -1,0 +1,117 @@
+{
+  "artifactId" : "cost-anomaly-detector",
+  "resourceId" : "6b05ab6107a24164ad07035d",
+  "generatedAt" : "2026-11-24T15:23:18.471041613Z",
+  "mock" : {
+    "id" : "153411ed-7111-4413-bc34-b09c22a1b26a",
+    "microserviceId" : null,
+    "specMetadataId" : "6b05ab9f69c50660bb9b1e69",
+    "apiSpecName" : "Cost Anomaly Detector",
+    "name" : "mock-cost-anomaly-detector",
+    "mockServiceName" : "mock-cost-anomaly-detector",
+    "mockServerUrl" : "https://forgesphere.probestack.io/mock-api/v1/api/private-mocks/mock-548c32ae",
+    "mockUrl" : "mock-548c32ae",
+    "isPrivate" : true,
+    "delayMs" : 0,
+    "responseLatencyMs" : 0,
+    "requestCount" : 0,
+    "createdAt" : "2026-11-24T15:22:24.609Z",
+    "updatedAt" : "2026-11-24T15:22:24.613Z"
+  },
+  "endpoints" : [ {
+    "id" : "14ed0985-1081-46d1-adb0-c7aaef755591",
+    "isActive" : true,
+    "request" : {
+      "method" : "POST",
+      "path" : "/scans",
+      "bodySample" : "{\"cloudProviders\":[\"AWS\",\"GCP\"],\"lookbackHours\":6,\"sensitivityLevel\":\"MEDIUM\",\"includeServices\":[\"compute\",\"database\",\"storage\",\"network\"],\"excludeExpectedEvents\":true,\"correlationWindowMinutes\":30}",
+      "validationMode" : "NONE",
+      "validationSchema" : null,
+      "validateMethod" : true
+    },
+    "response" : {
+      "status" : 202,
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "body" : "{\"scanId\":\"123e4567-e89b-12d3-a456-426614174000\",\"status\":\"COMPLETED\",\"cloudProviders\":[\"AWS\",\"GCP\"],\"lookbackHours\":6,\"sensitivityLevel\":\"MEDIUM\",\"startedAt\":\"2024-01-01T00:00:00Z\",\"completedAt\":\"2024-01-01T00:00:00Z\",\"durationSeconds\":42,\"anomaliesDetected\":3,\"summary\":{\"totalSpendInWindowUSD\":18420.5,\"expectedSpendUSD\":12450.0,\"actualDeviationUSD\":5970.5,\"actualDeviationPercent\":48.0},\"anomalies\":[{\"anomalyId\":\"456e7890-e89b-12d3-a456-426614174001\",\"scanId\":\"123e4567-e89b-12d3-a456-426614174000\",\"title\":\"AWS Lambda spend spiked 340% — likely runaway recursion\",\"description\":\"Lambda invocation count jumped from 120K to 12M/hour, costing $84/hour vs expected $8/hour.\",\"severity\":\"CRITICAL\",\"status\":\"OPEN\",\"cloudProvider\":\"AWS\",\"service\":\"compute\",\"serviceDetail\":\"Lambda\",\"region\":\"us-east-1\",\"detectedAt\":\"2026-11-24T08:15:00Z\",\"anomalyWindowStart\":\"2026-11-24T07:00:00Z\",\"anomalyWindowEnd\":\"2026-11-24T08:00:00Z\",\"costImpact\":{\"actualCostUSD\":168.0,\"expectedCostUSD\":38.2,\"deviationUSD\":129.8,\"deviationPercent\":340.0,\"projectedMonthlyCostUSD\":62000.0},\"percentDeviation\":340.0,\"confidence\":0.96,\"attribution\":{\"team\":\"payments-team\",\"costCenter\":\"CC-PAYMENTS-001\",\"application\":\"payment-processor\",\"environment\":\"PRODUCTION\",\"resourceIds\":[\"arn:aws:lambda:us-east-1:123:function:payment-processor-authorize\"],\"trafficChange\":\"10,000% increase in invocation count\"},\"probableRootCause\":{\"category\":\"RECURSION\",\"description\":\"Lambda function likely stuck in recursive S3 trigger loop; invocation count 100x normal.\",\"confidence\":0.89,\"evidence\":[\"Invocation count: 120K/hr → 12M/hr\",\"Duration: 45ms avg unchanged\",\"Trigger source: S3 event on same bucket function writes to\"]},\"relatedChanges\":[{\"changeType\":\"DEPLOYMENT\",\"changeId\":\"deploy-abc123\",\"occurredAt\":\"2026-11-24T07:05:00Z\",\"correlationConfidence\":0.92,\"summary\":\"payments-team deployed v2.5.0 to Lambda authorizer function.\"}],\"spendTimeline\":[{\"hour\":\"2026-11-24T07:00:00Z\",\"actualCostUSD\":168.0,\"expectedCostUSD\":38.2}],\"recommendedActions\":[\"Throttle Lambda concurrent executions to 100 (currently unlimited).\",\"Fix S3 bucket lifecycle policy to prevent recursive writes.\",\"Add CloudWatch alarm for invocation count > 1M/hour.\"],\"assignedTo\":\"payments-engineer@forgesphere.example.com\",\"acknowledgedAt\":\"2024-01-01T00:00:00Z\",\"acknowledgedBy\":\"oncall@forgesphere.example.com\",\"resolvedAt\":\"2024-01-01T00:00:00Z\",\"resolvedBy\":\"string\",\"resolutionType\":\"THROTTLING_ADDED\",\"actualCostImpactUSD\":12450.0,\"aiSummary\":\"CRITICAL: AWS Lambda spend spiked 340% ($168/hr vs $38/hr baseline). Root cause: recursive S3 trigger; 12M invocations/hour vs 120K normal. Projected monthly cost if unfixed: $62,000. Deploy at 07:05 UTC is likely trigger. Recommend: throttle concurrency + fix S3 lifecycle.\",\"auditReference\":\"audit://cost-anomaly/anomaly-456e7890\"}],\"errorMessage\":\"string\"}",
+      "delayMs" : 0
+    }
+  }, {
+    "id" : "d25c6142-72bc-4b7a-a23e-ce16c1855fe0",
+    "isActive" : true,
+    "request" : {
+      "method" : "GET",
+      "path" : "/scans/{scanId}",
+      "bodySample" : null,
+      "validationMode" : "NONE",
+      "validationSchema" : null,
+      "validateMethod" : true
+    },
+    "response" : {
+      "status" : 200,
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "body" : "{\"scanId\":\"123e4567-e89b-12d3-a456-426614174000\",\"status\":\"COMPLETED\",\"cloudProviders\":[\"AWS\",\"GCP\"],\"lookbackHours\":6,\"sensitivityLevel\":\"MEDIUM\",\"startedAt\":\"2024-01-01T00:00:00Z\",\"completedAt\":\"2024-01-01T00:00:00Z\",\"durationSeconds\":42,\"anomaliesDetected\":3,\"summary\":{\"totalSpendInWindowUSD\":18420.5,\"expectedSpendUSD\":12450.0,\"actualDeviationUSD\":5970.5,\"actualDeviationPercent\":48.0},\"anomalies\":[{\"anomalyId\":\"456e7890-e89b-12d3-a456-426614174001\",\"scanId\":\"123e4567-e89b-12d3-a456-426614174000\",\"title\":\"AWS Lambda spend spiked 340% — likely runaway recursion\",\"description\":\"Lambda invocation count jumped from 120K to 12M/hour, costing $84/hour vs expected $8/hour.\",\"severity\":\"CRITICAL\",\"status\":\"OPEN\",\"cloudProvider\":\"AWS\",\"service\":\"compute\",\"serviceDetail\":\"Lambda\",\"region\":\"us-east-1\",\"detectedAt\":\"2026-11-24T08:15:00Z\",\"anomalyWindowStart\":\"2026-11-24T07:00:00Z\",\"anomalyWindowEnd\":\"2026-11-24T08:00:00Z\",\"costImpact\":{\"actualCostUSD\":168.0,\"expectedCostUSD\":38.2,\"deviationUSD\":129.8,\"deviationPercent\":340.0,\"projectedMonthlyCostUSD\":62000.0},\"percentDeviation\":340.0,\"confidence\":0.96,\"attribution\":{\"team\":\"payments-team\",\"costCenter\":\"CC-PAYMENTS-001\",\"application\":\"payment-processor\",\"environment\":\"PRODUCTION\",\"resourceIds\":[\"arn:aws:lambda:us-east-1:123:function:payment-processor-authorize\"],\"trafficChange\":\"10,000% increase in invocation count\"},\"probableRootCause\":{\"category\":\"RECURSION\",\"description\":\"Lambda function likely stuck in recursive S3 trigger loop; invocation count 100x normal.\",\"confidence\":0.89,\"evidence\":[\"Invocation count: 120K/hr → 12M/hr\",\"Duration: 45ms avg unchanged\",\"Trigger source: S3 event on same bucket function writes to\"]},\"relatedChanges\":[{\"changeType\":\"DEPLOYMENT\",\"changeId\":\"deploy-abc123\",\"occurredAt\":\"2026-11-24T07:05:00Z\",\"correlationConfidence\":0.92,\"summary\":\"payments-team deployed v2.5.0 to Lambda authorizer function.\"}],\"spendTimeline\":[{\"hour\":\"2026-11-24T07:00:00Z\",\"actualCostUSD\":168.0,\"expectedCostUSD\":38.2}],\"recommendedActions\":[\"Throttle Lambda concurrent executions to 100 (currently unlimited).\",\"Fix S3 bucket lifecycle policy to prevent recursive writes.\",\"Add CloudWatch alarm for invocation count > 1M/hour.\"],\"assignedTo\":\"payments-engineer@forgesphere.example.com\",\"acknowledgedAt\":\"2024-01-01T00:00:00Z\",\"acknowledgedBy\":\"oncall@forgesphere.example.com\",\"resolvedAt\":\"2024-01-01T00:00:00Z\",\"resolvedBy\":\"string\",\"resolutionType\":\"THROTTLING_ADDED\",\"actualCostImpactUSD\":12450.0,\"aiSummary\":\"CRITICAL: AWS Lambda spend spiked 340% ($168/hr vs $38/hr baseline). Root cause: recursive S3 trigger; 12M invocations/hour vs 120K normal. Projected monthly cost if unfixed: $62,000. Deploy at 07:05 UTC is likely trigger. Recommend: throttle concurrency + fix S3 lifecycle.\",\"auditReference\":\"audit://cost-anomaly/anomaly-456e7890\"}],\"errorMessage\":\"string\"}",
+      "delayMs" : 0
+    }
+  }, {
+    "id" : "a2f3cbec-69f1-4595-ac66-bafbe43075aa",
+    "isActive" : true,
+    "request" : {
+      "method" : "GET",
+      "path" : "/anomalies",
+      "bodySample" : null,
+      "validationMode" : "NONE",
+      "validationSchema" : null,
+      "validateMethod" : true
+    },
+    "response" : {
+      "status" : 200,
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "body" : "{\"content\":[{\"anomalyId\":\"456e7890-e89b-12d3-a456-426614174001\",\"scanId\":\"123e4567-e89b-12d3-a456-426614174000\",\"title\":\"AWS Lambda spend spiked 340% — likely runaway recursion\",\"description\":\"Lambda invocation count jumped from 120K to 12M/hour, costing $84/hour vs expected $8/hour.\",\"severity\":\"CRITICAL\",\"status\":\"OPEN\",\"cloudProvider\":\"AWS\",\"service\":\"compute\",\"serviceDetail\":\"Lambda\",\"region\":\"us-east-1\",\"detectedAt\":\"2026-11-24T08:15:00Z\",\"anomalyWindowStart\":\"2026-11-24T07:00:00Z\",\"anomalyWindowEnd\":\"2026-11-24T08:00:00Z\",\"costImpact\":{\"actualCostUSD\":168.0,\"expectedCostUSD\":38.2,\"deviationUSD\":129.8,\"deviationPercent\":340.0,\"projectedMonthlyCostUSD\":62000.0},\"percentDeviation\":340.0,\"confidence\":0.96,\"attribution\":{\"team\":\"payments-team\",\"costCenter\":\"CC-PAYMENTS-001\",\"application\":\"payment-processor\",\"environment\":\"PRODUCTION\",\"resourceIds\":[\"arn:aws:lambda:us-east-1:123:function:payment-processor-authorize\"],\"trafficChange\":\"10,000% increase in invocation count\"},\"probableRootCause\":{\"category\":\"RECURSION\",\"description\":\"Lambda function likely stuck in recursive S3 trigger loop; invocation count 100x normal.\",\"confidence\":0.89,\"evidence\":[\"Invocation count: 120K/hr → 12M/hr\",\"Duration: 45ms avg unchanged\",\"Trigger source: S3 event on same bucket function writes to\"]},\"relatedChanges\":[{\"changeType\":\"DEPLOYMENT\",\"changeId\":\"deploy-abc123\",\"occurredAt\":\"2026-11-24T07:05:00Z\",\"correlationConfidence\":0.92,\"summary\":\"payments-team deployed v2.5.0 to Lambda authorizer function.\"}],\"spendTimeline\":[{\"hour\":\"2026-11-24T07:00:00Z\",\"actualCostUSD\":168.0,\"expectedCostUSD\":38.2}],\"recommendedActions\":[\"Throttle Lambda concurrent executions to 100 (currently unlimited).\",\"Fix S3 bucket lifecycle policy to prevent recursive writes.\",\"Add CloudWatch alarm for invocation count > 1M/hour.\"],\"assignedTo\":\"payments-engineer@forgesphere.example.com\",\"acknowledgedAt\":\"2024-01-01T00:00:00Z\",\"acknowledgedBy\":\"oncall@forgesphere.example.com\",\"resolvedAt\":\"2024-01-01T00:00:00Z\",\"resolvedBy\":\"string\",\"resolutionType\":\"THROTTLING_ADDED\",\"actualCostImpactUSD\":12450.0,\"aiSummary\":\"CRITICAL: AWS Lambda spend spiked 340% ($168/hr vs $38/hr baseline). Root cause: recursive S3 trigger; 12M invocations/hour vs 120K normal. Projected monthly cost if unfixed: $62,000. Deploy at 07:05 UTC is likely trigger. Recommend: throttle concurrency + fix S3 lifecycle.\",\"auditReference\":\"audit://cost-anomaly/anomaly-456e7890\"}],\"page\":0,\"size\":20,\"totalElements\":47,\"totalPages\":3,\"summary\":{\"totalAnomalies\":47,\"open\":12,\"acknowledged\":8,\"investigating\":5,\"resolved\":22,\"totalCostImpactUSD\":28450.0,\"projectedMonthlyImpactUSD\":124500.0,\"topProvider\":\"AWS\",\"topService\":\"compute\"}}",
+      "delayMs" : 0
+    }
+  }, {
+    "id" : "a8a2960e-d7f9-4916-80e7-2583e88d8461",
+    "isActive" : true,
+    "request" : {
+      "method" : "GET",
+      "path" : "/anomalies/{anomalyId}",
+      "bodySample" : null,
+      "validationMode" : "NONE",
+      "validationSchema" : null,
+      "validateMethod" : true
+    },
+    "response" : {
+      "status" : 200,
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "body" : "{\"anomalyId\":\"456e7890-e89b-12d3-a456-426614174001\",\"scanId\":\"123e4567-e89b-12d3-a456-426614174000\",\"title\":\"AWS Lambda spend spiked 340% — likely runaway recursion\",\"description\":\"Lambda invocation count jumped from 120K to 12M/hour, costing $84/hour vs expected $8/hour.\",\"severity\":\"CRITICAL\",\"status\":\"OPEN\",\"cloudProvider\":\"AWS\",\"service\":\"compute\",\"serviceDetail\":\"Lambda\",\"region\":\"us-east-1\",\"detectedAt\":\"2026-11-24T08:15:00Z\",\"anomalyWindowStart\":\"2026-11-24T07:00:00Z\",\"anomalyWindowEnd\":\"2026-11-24T08:00:00Z\",\"costImpact\":{\"actualCostUSD\":168.0,\"expectedCostUSD\":38.2,\"deviationUSD\":129.8,\"deviationPercent\":340.0,\"projectedMonthlyCostUSD\":62000.0},\"percentDeviation\":340.0,\"confidence\":0.96,\"attribution\":{\"team\":\"payments-team\",\"costCenter\":\"CC-PAYMENTS-001\",\"application\":\"payment-processor\",\"environment\":\"PRODUCTION\",\"resourceIds\":[\"arn:aws:lambda:us-east-1:123:function:payment-processor-authorize\"],\"trafficChange\":\"10,000% increase in invocation count\"},\"probableRootCause\":{\"category\":\"RECURSION\",\"description\":\"Lambda function likely stuck in recursive S3 trigger loop; invocation count 100x normal.\",\"confidence\":0.89,\"evidence\":[\"Invocation count: 120K/hr → 12M/hr\",\"Duration: 45ms avg unchanged\",\"Trigger source: S3 event on same bucket function writes to\"]},\"relatedChanges\":[{\"changeType\":\"DEPLOYMENT\",\"changeId\":\"deploy-abc123\",\"occurredAt\":\"2026-11-24T07:05:00Z\",\"correlationConfidence\":0.92,\"summary\":\"payments-team deployed v2.5.0 to Lambda authorizer function.\"}],\"spendTimeline\":[{\"hour\":\"2026-11-24T07:00:00Z\",\"actualCostUSD\":168.0,\"expectedCostUSD\":38.2}],\"recommendedActions\":[\"Throttle Lambda concurrent executions to 100 (currently unlimited).\",\"Fix S3 bucket lifecycle policy to prevent recursive writes.\",\"Add CloudWatch alarm for invocation count > 1M/hour.\"],\"assignedTo\":\"payments-engineer@forgesphere.example.com\",\"acknowledgedAt\":\"2024-01-01T00:00:00Z\",\"acknowledgedBy\":\"oncall@forgesphere.example.com\",\"resolvedAt\":\"2024-01-01T00:00:00Z\",\"resolvedBy\":\"string\",\"resolutionType\":\"THROTTLING_ADDED\",\"actualCostImpactUSD\":12450.0,\"aiSummary\":\"CRITICAL: AWS Lambda spend spiked 340% ($168/hr vs $38/hr baseline). Root cause: recursive S3 trigger; 12M invocations/hour vs 120K normal. Projected monthly cost if unfixed: $62,000. Deploy at 07:05 UTC is likely trigger. Recommend: throttle concurrency + fix S3 lifecycle.\",\"auditReference\":\"audit://cost-anomaly/anomaly-456e7890\"}",
+      "delayMs" : 0
+    }
+  }, {
+    "id" : "6ffa6e5c-b31f-493a-a374-67d0ffe2d8f0",
+    "isActive" : true,
+    "request" : {
+      "method" : "POST",
+      "path" : "/anomalies/{anomalyId}/action",
+      "bodySample" : "{\"action\":\"RESOLVE\",\"reason\":\"Stopped runaway Lambda recursion; deployed fix via feature flag.\",\"performedBy\":\"payments-engineer@forgesphere.example.com\",\"resolutionType\":\"CONFIGURATION_FIX\",\"actualCostImpactUSD\":12450.0,\"preventRecurrence\":\"Added rate limit on Lambda invocation.\"}",
+      "validationMode" : "NONE",
+      "validationSchema" : null,
+      "validateMethod" : true
+    },
+    "response" : {
+      "status" : 200,
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "body" : "{\"anomalyId\":\"456e7890-e89b-12d3-a456-426614174001\",\"scanId\":\"123e4567-e89b-12d3-a456-426614174000\",\"title\":\"AWS Lambda spend spiked 340% — likely runaway recursion\",\"description\":\"Lambda invocation count jumped from 120K to 12M/hour, costing $84/hour vs expected $8/hour.\",\"severity\":\"CRITICAL\",\"status\":\"OPEN\",\"cloudProvider\":\"AWS\",\"service\":\"compute\",\"serviceDetail\":\"Lambda\",\"region\":\"us-east-1\",\"detectedAt\":\"2026-11-24T08:15:00Z\",\"anomalyWindowStart\":\"2026-11-24T07:00:00Z\",\"anomalyWindowEnd\":\"2026-11-24T08:00:00Z\",\"costImpact\":{\"actualCostUSD\":168.0,\"expectedCostUSD\":38.2,\"deviationUSD\":129.8,\"deviationPercent\":340.0,\"projectedMonthlyCostUSD\":62000.0},\"percentDeviation\":340.0,\"confidence\":0.96,\"attribution\":{\"team\":\"payments-team\",\"costCenter\":\"CC-PAYMENTS-001\",\"application\":\"payment-processor\",\"environment\":\"PRODUCTION\",\"resourceIds\":[\"arn:aws:lambda:us-east-1:123:function:payment-processor-authorize\"],\"trafficChange\":\"10,000% increase in invocation count\"},\"probableRootCause\":{\"category\":\"RECURSION\",\"description\":\"Lambda function likely stuck in recursive S3 trigger loop; invocation count 100x normal.\",\"confidence\":0.89,\"evidence\":[\"Invocation count: 120K/hr → 12M/hr\",\"Duration: 45ms avg unchanged\",\"Trigger source: S3 event on same bucket function writes to\"]},\"relatedChanges\":[{\"changeType\":\"DEPLOYMENT\",\"changeId\":\"deploy-abc123\",\"occurredAt\":\"2026-11-24T07:05:00Z\",\"correlationConfidence\":0.92,\"summary\":\"payments-team deployed v2.5.0 to Lambda authorizer function.\"}],\"spendTimeline\":[{\"hour\":\"2026-11-24T07:00:00Z\",\"actualCostUSD\":168.0,\"expectedCostUSD\":38.2}],\"recommendedActions\":[\"Throttle Lambda concurrent executions to 100 (currently unlimited).\",\"Fix S3 bucket lifecycle policy to prevent recursive writes.\",\"Add CloudWatch alarm for invocation count > 1M/hour.\"],\"assignedTo\":\"payments-engineer@forgesphere.example.com\",\"acknowledgedAt\":\"2024-01-01T00:00:00Z\",\"acknowledgedBy\":\"oncall@forgesphere.example.com\",\"resolvedAt\":\"2024-01-01T00:00:00Z\",\"resolvedBy\":\"string\",\"resolutionType\":\"THROTTLING_ADDED\",\"actualCostImpactUSD\":12450.0,\"aiSummary\":\"CRITICAL: AWS Lambda spend spiked 340% ($168/hr vs $38/hr baseline). Root cause: recursive S3 trigger; 12M invocations/hour vs 120K normal. Projected monthly cost if unfixed: $62,000. Deploy at 07:05 UTC is likely trigger. Recommend: throttle concurrency + fix S3 lifecycle.\",\"auditReference\":\"audit://cost-anomaly/anomaly-456e7890\"}",
+      "delayMs" : 0
+    }
+  } ]
+}

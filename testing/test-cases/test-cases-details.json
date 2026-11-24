@@ -1,0 +1,288 @@
+{
+  "artifactId" : "cost-anomaly-detector",
+  "generatedAt" : "2026-11-24T15:23:19.018185292Z",
+  "testCaseCount" : 19,
+  "testCases" : [ {
+    "category" : "Positive",
+    "name" : "[POSITIVE] POST /scans",
+    "description" : "Happy path: valid request should return 202",
+    "request" : {
+      "method" : "POST",
+      "url" : "{{baseUrl}}/scans",
+      "path" : [ "scans" ],
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "body" : {
+        "cloudProviders" : [ "AWS", "GCP" ],
+        "lookbackHours" : 6,
+        "sensitivityLevel" : "MEDIUM",
+        "includeServices" : [ "compute", "database", "storage", "network" ],
+        "excludeExpectedEvents" : true,
+        "correlationWindowMinutes" : 30
+      }
+    },
+    "assertions" : [ "pm.test(\"Status code is 202\", function() { if(pm.response.code !== 202) throw new Error(\"Expected 202 but got \" + pm.response.code); });" ]
+  }, {
+    "category" : "Positive",
+    "name" : "[POSITIVE] GET /scans/{scanId}",
+    "description" : "Happy path: valid request should return 200",
+    "request" : {
+      "method" : "GET",
+      "url" : "{{baseUrl}}/scans/{scanId}",
+      "path" : [ "scans", "{scanId}" ],
+      "headers" : { },
+      "body" : null
+    },
+    "assertions" : [ "pm.test(\"Status code is 200\", function() { if(pm.response.code !== 200) throw new Error(\"Expected 200 but got \" + pm.response.code); });" ]
+  }, {
+    "category" : "Positive",
+    "name" : "[POSITIVE] GET /anomalies",
+    "description" : "Happy path: valid request should return 200",
+    "request" : {
+      "method" : "GET",
+      "url" : "{{baseUrl}}/anomalies",
+      "path" : [ "anomalies" ],
+      "headers" : { },
+      "body" : null
+    },
+    "assertions" : [ "pm.test(\"Status code is 200\", function() { if(pm.response.code !== 200) throw new Error(\"Expected 200 but got \" + pm.response.code); });" ]
+  }, {
+    "category" : "Positive",
+    "name" : "[POSITIVE] GET /anomalies/{anomalyId}",
+    "description" : "Happy path: valid request should return 200",
+    "request" : {
+      "method" : "GET",
+      "url" : "{{baseUrl}}/anomalies/{anomalyId}",
+      "path" : [ "anomalies", "{anomalyId}" ],
+      "headers" : { },
+      "body" : null
+    },
+    "assertions" : [ "pm.test(\"Status code is 200\", function() { if(pm.response.code !== 200) throw new Error(\"Expected 200 but got \" + pm.response.code); });" ]
+  }, {
+    "category" : "Positive",
+    "name" : "[POSITIVE] POST /anomalies/{anomalyId}/action",
+    "description" : "Happy path: valid request should return 200",
+    "request" : {
+      "method" : "POST",
+      "url" : "{{baseUrl}}/anomalies/{anomalyId}/action",
+      "path" : [ "anomalies", "{anomalyId}", "action" ],
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "body" : {
+        "action" : "RESOLVE",
+        "reason" : "Stopped runaway Lambda recursion; deployed fix via feature flag.",
+        "performedBy" : "payments-engineer@forgesphere.example.com",
+        "resolutionType" : "CONFIGURATION_FIX",
+        "actualCostImpactUSD" : 12450.0,
+        "preventRecurrence" : "Added rate limit on Lambda invocation."
+      }
+    },
+    "assertions" : [ "pm.test(\"Status code is 200\", function() { if(pm.response.code !== 200) throw new Error(\"Expected 200 but got \" + pm.response.code); });" ]
+  }, {
+    "category" : "Negative",
+    "name" : "[NEGATIVE] POST /scans",
+    "description" : "Empty request body sent",
+    "request" : {
+      "method" : "POST",
+      "url" : "{{baseUrl}}/scans",
+      "path" : [ "scans" ],
+      "headers" : { },
+      "body" : null
+    },
+    "assertions" : [ "pm.test(\"Status code is 400\", function() { if(pm.response.code !== 400) throw new Error(\"Expected 400 but got \" + pm.response.code); });" ]
+  }, {
+    "category" : "Negative",
+    "name" : "[NEGATIVE] GET /scans/{scanId}",
+    "description" : "Missing required path parameter: scanId",
+    "request" : {
+      "method" : "GET",
+      "url" : "{{baseUrl}}/scans/{scanId}",
+      "path" : [ "scans", "{scanId}" ],
+      "headers" : { },
+      "body" : null
+    },
+    "assertions" : [ "pm.test(\"Status code is 400\", function() { if(pm.response.code !== 400) throw new Error(\"Expected 400 but got \" + pm.response.code); });" ]
+  }, {
+    "category" : "Negative",
+    "name" : "[NEGATIVE] GET /scans/{scanId}",
+    "description" : "Invalid type for parameter scanId (expected string)",
+    "request" : {
+      "method" : "GET",
+      "url" : "{{baseUrl}}/scans/{scanId}",
+      "path" : [ "scans", "{scanId}" ],
+      "headers" : { },
+      "body" : null
+    },
+    "assertions" : [ "pm.test(\"Status code is 400\", function() { if(pm.response.code !== 400) throw new Error(\"Expected 400 but got \" + pm.response.code); });" ]
+  }, {
+    "category" : "Negative",
+    "name" : "[NEGATIVE] GET /anomalies",
+    "description" : "Invalid type for parameter severity (expected string)",
+    "request" : {
+      "method" : "GET",
+      "url" : "{{baseUrl}}/anomalies",
+      "path" : [ "anomalies" ],
+      "headers" : { },
+      "body" : null
+    },
+    "assertions" : [ "pm.test(\"Status code is 400\", function() { if(pm.response.code !== 400) throw new Error(\"Expected 400 but got \" + pm.response.code); });" ]
+  }, {
+    "category" : "Negative",
+    "name" : "[NEGATIVE] GET /anomalies/{anomalyId}",
+    "description" : "Missing required path parameter: anomalyId",
+    "request" : {
+      "method" : "GET",
+      "url" : "{{baseUrl}}/anomalies/{anomalyId}",
+      "path" : [ "anomalies", "{anomalyId}" ],
+      "headers" : { },
+      "body" : null
+    },
+    "assertions" : [ "pm.test(\"Status code is 400\", function() { if(pm.response.code !== 400) throw new Error(\"Expected 400 but got \" + pm.response.code); });" ]
+  }, {
+    "category" : "Negative",
+    "name" : "[NEGATIVE] GET /anomalies/{anomalyId}",
+    "description" : "Invalid type for parameter anomalyId (expected string)",
+    "request" : {
+      "method" : "GET",
+      "url" : "{{baseUrl}}/anomalies/{anomalyId}",
+      "path" : [ "anomalies", "{anomalyId}" ],
+      "headers" : { },
+      "body" : null
+    },
+    "assertions" : [ "pm.test(\"Status code is 400\", function() { if(pm.response.code !== 400) throw new Error(\"Expected 400 but got \" + pm.response.code); });" ]
+  }, {
+    "category" : "Negative",
+    "name" : "[NEGATIVE] POST /anomalies/{anomalyId}/action",
+    "description" : "Missing required path parameter: anomalyId",
+    "request" : {
+      "method" : "POST",
+      "url" : "{{baseUrl}}/anomalies/{anomalyId}/action",
+      "path" : [ "anomalies", "{anomalyId}", "action" ],
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "body" : {
+        "action" : "RESOLVE",
+        "reason" : "Stopped runaway Lambda recursion; deployed fix via feature flag.",
+        "performedBy" : "payments-engineer@forgesphere.example.com",
+        "resolutionType" : "CONFIGURATION_FIX",
+        "actualCostImpactUSD" : 12450.0,
+        "preventRecurrence" : "Added rate limit on Lambda invocation."
+      }
+    },
+    "assertions" : [ "pm.test(\"Status code is 400\", function() { if(pm.response.code !== 400) throw new Error(\"Expected 400 but got \" + pm.response.code); });" ]
+  }, {
+    "category" : "Negative",
+    "name" : "[NEGATIVE] POST /anomalies/{anomalyId}/action",
+    "description" : "Invalid type for parameter anomalyId (expected string)",
+    "request" : {
+      "method" : "POST",
+      "url" : "{{baseUrl}}/anomalies/{anomalyId}/action",
+      "path" : [ "anomalies", "{anomalyId}", "action" ],
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "body" : {
+        "action" : "RESOLVE",
+        "reason" : "Stopped runaway Lambda recursion; deployed fix via feature flag.",
+        "performedBy" : "payments-engineer@forgesphere.example.com",
+        "resolutionType" : "CONFIGURATION_FIX",
+        "actualCostImpactUSD" : 12450.0,
+        "preventRecurrence" : "Added rate limit on Lambda invocation."
+      }
+    },
+    "assertions" : [ "pm.test(\"Status code is 400\", function() { if(pm.response.code !== 400) throw new Error(\"Expected 400 but got \" + pm.response.code); });" ]
+  }, {
+    "category" : "Negative",
+    "name" : "[NEGATIVE] POST /anomalies/{anomalyId}/action",
+    "description" : "Empty request body sent",
+    "request" : {
+      "method" : "POST",
+      "url" : "{{baseUrl}}/anomalies/{anomalyId}/action",
+      "path" : [ "anomalies", "{anomalyId}", "action" ],
+      "headers" : { },
+      "body" : null
+    },
+    "assertions" : [ "pm.test(\"Status code is 400\", function() { if(pm.response.code !== 400) throw new Error(\"Expected 400 but got \" + pm.response.code); });" ]
+  }, {
+    "category" : "Performance",
+    "name" : "[PERFORMANCE] POST /scans",
+    "description" : "Performance: response time should be < 2000ms",
+    "request" : {
+      "method" : "POST",
+      "url" : "{{baseUrl}}/scans",
+      "path" : [ "scans" ],
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "body" : {
+        "cloudProviders" : [ "AWS", "GCP" ],
+        "lookbackHours" : 6,
+        "sensitivityLevel" : "MEDIUM",
+        "includeServices" : [ "compute", "database", "storage", "network" ],
+        "excludeExpectedEvents" : true,
+        "correlationWindowMinutes" : 30
+      }
+    },
+    "assertions" : [ "pm.test(\"Response time < 2000 ms\", function() { if(pm.response.responseTime > 2000) throw new Error(\"Response time \" + pm.response.responseTime + \"ms exceeds 2000ms\"); });" ]
+  }, {
+    "category" : "Performance",
+    "name" : "[PERFORMANCE] GET /scans/{scanId}",
+    "description" : "Performance: response time should be < 2000ms",
+    "request" : {
+      "method" : "GET",
+      "url" : "{{baseUrl}}/scans/{scanId}",
+      "path" : [ "scans", "{scanId}" ],
+      "headers" : { },
+      "body" : null
+    },
+    "assertions" : [ "pm.test(\"Response time < 2000 ms\", function() { if(pm.response.responseTime > 2000) throw new Error(\"Response time \" + pm.response.responseTime + \"ms exceeds 2000ms\"); });" ]
+  }, {
+    "category" : "Performance",
+    "name" : "[PERFORMANCE] GET /anomalies",
+    "description" : "Performance: response time should be < 2000ms",
+    "request" : {
+      "method" : "GET",
+      "url" : "{{baseUrl}}/anomalies",
+      "path" : [ "anomalies" ],
+      "headers" : { },
+      "body" : null
+    },
+    "assertions" : [ "pm.test(\"Response time < 2000 ms\", function() { if(pm.response.responseTime > 2000) throw new Error(\"Response time \" + pm.response.responseTime + \"ms exceeds 2000ms\"); });" ]
+  }, {
+    "category" : "Performance",
+    "name" : "[PERFORMANCE] GET /anomalies/{anomalyId}",
+    "description" : "Performance: response time should be < 2000ms",
+    "request" : {
+      "method" : "GET",
+      "url" : "{{baseUrl}}/anomalies/{anomalyId}",
+      "path" : [ "anomalies", "{anomalyId}" ],
+      "headers" : { },
+      "body" : null
+    },
+    "assertions" : [ "pm.test(\"Response time < 2000 ms\", function() { if(pm.response.responseTime > 2000) throw new Error(\"Response time \" + pm.response.responseTime + \"ms exceeds 2000ms\"); });" ]
+  }, {
+    "category" : "Performance",
+    "name" : "[PERFORMANCE] POST /anomalies/{anomalyId}/action",
+    "description" : "Performance: response time should be < 2000ms",
+    "request" : {
+      "method" : "POST",
+      "url" : "{{baseUrl}}/anomalies/{anomalyId}/action",
+      "path" : [ "anomalies", "{anomalyId}", "action" ],
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "body" : {
+        "action" : "RESOLVE",
+        "reason" : "Stopped runaway Lambda recursion; deployed fix via feature flag.",
+        "performedBy" : "payments-engineer@forgesphere.example.com",
+        "resolutionType" : "CONFIGURATION_FIX",
+        "actualCostImpactUSD" : 12450.0,
+        "preventRecurrence" : "Added rate limit on Lambda invocation."
+      }
+    },
+    "assertions" : [ "pm.test(\"Response time < 2000 ms\", function() { if(pm.response.responseTime > 2000) throw new Error(\"Response time \" + pm.response.responseTime + \"ms exceeds 2000ms\"); });" ]
+  } ]
+}
