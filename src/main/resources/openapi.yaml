@@ -1,0 +1,1780 @@
+openapi: 3.0.3
+info:
+  contact:
+    email: finops@forgesphere.example.com
+    name: ForgeSphere FinOps Team
+  description: "Real-time cloud cost anomaly detection and forensics platform. Detects\
+    \ \nunexpected spend spikes within minutes (not at end-of-month billing) by \n\
+    analyzing usage patterns across every AWS, GCP, and Azure service. Uses \nML-based\
+    \ baselines, seasonal patterns, and business context to distinguish \nreal anomalies\
+    \ from expected events (Black Friday, product launches). \nProvides root-cause\
+    \ attribution — which resource, which team, which change \ncaused the spike. Enables\
+    \ engineers to act before a $500/day misconfiguration \nbecomes a $50,000 monthly\
+    \ bill.\n"
+  termsOfService: https://forgesphere.example.com/terms
+  title: Cost Anomaly Detector
+  version: 1.0.0
+servers:
+- description: Production Server
+  url: https://cost-anomaly.forgesphere.lightning.com/v1
+- description: Local Development Server
+  url: http://localhost:8155/v1
+security:
+- bearerAuth: []
+tags:
+- description: "Detect, list, and analyze cost anomalies."
+  name: Anomalies
+- description: "Acknowledge, suppress, or investigate anomalies."
+  name: Actions
+paths:
+  /scans:
+    post:
+      description: "Runs an immediate anomaly detection scan over a specified time\
+        \ window. \nNormally scans run automatically every 15 minutes, but this endpoint\
+        \ \nforces an ad-hoc scan — useful after a known deployment, during \nincident\
+        \ investigation, or before a sales event. Compares current \nspend against\
+        \ ML-based seasonal baselines and flags deviations above \nthe threshold.\n"
+      operationId: triggerScan
+      requestBody:
+        content:
+          application/json:
+            example:
+              cloudProviders:
+              - AWS
+              - GCP
+              lookbackHours: 6
+              sensitivityLevel: MEDIUM
+              includeServices:
+              - compute
+              - database
+              - storage
+              - network
+              excludeExpectedEvents: true
+              correlationWindowMinutes: 30
+            schema:
+              $ref: "#/components/schemas/TriggerScanRequest"
+        required: true
+      responses:
+        "202":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DetectionScan"
+          description: Scan accepted and starting.
+          headers:
+            Location:
+              description: URL to poll for scan status.
+              example: /v1/scans/123e4567-e89b-12d3-a456-426614174000
+              explode: false
+              schema:
+                format: uri
+                type: string
+              style: simple
+        "400":
+          content:
+            application/json:
+              example:
+                status: 400
+                errorCode: VALIDATION_ERROR
+                message: cloudProviders must contain at least one valid provider.
+                timestamp: 2026-11-24T10:30:00Z
+                path: /v1/scans
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Invalid request payload or parameters.
+        "401":
+          content:
+            application/json:
+              example:
+                status: 401
+                errorCode: UNAUTHORIZED
+                message: Missing or expired authentication token.
+                timestamp: 2026-11-24T10:30:00Z
+                path: /v1/anomalies
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Missing or invalid authentication token.
+        "429":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Scan quota exceeded for this organization.
+        "500":
+          content:
+            application/json:
+              example:
+                status: 500
+                errorCode: BILLING_API_ERROR
+                message: Failed to fetch cost data from AWS Cost Explorer. Retrying.
+                timestamp: 2026-11-24T10:30:00Z
+                path: /v1/scans
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected server error.
+      summary: Trigger an on-demand cost anomaly detection scan
+      tags:
+      - Anomalies
+      x-content-type: application/json
+      x-accepts: application/json
+      x-tags:
+      - tag: Anomalies
+  /scans/{scanId}:
+    get:
+      description: "Returns the current state of a scan — progress, anomalies detected,\
+        \ \ntotal spend in the window, and overall spend delta. Poll this endpoint\
+        \ \nuntil status = COMPLETED to get the full anomaly list.\n"
+      operationId: getScan
+      parameters:
+      - description: Unique identifier of the scan.
+        example: 123e4567-e89b-12d3-a456-426614174000
+        explode: false
+        in: path
+        name: scanId
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      - description: Include the full anomaly list in the response.
+        example: true
+        explode: true
+        in: query
+        name: includeAnomalies
+        required: false
+        schema:
+          default: true
+          type: boolean
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DetectionScan"
+          description: Scan status and results.
+        "401":
+          content:
+            application/json:
+              example:
+                status: 401
+                errorCode: UNAUTHORIZED
+                message: Missing or expired authentication token.
+                timestamp: 2026-11-24T10:30:00Z
+                path: /v1/anomalies
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Missing or invalid authentication token.
+        "404":
+          content:
+            application/json:
+              example:
+                status: 404
+                errorCode: ANOMALY_NOT_FOUND
+                message: No anomaly found with ID 456e7890-e89b-12d3-a456-426614174001.
+                timestamp: 2026-11-24T10:30:00Z
+                path: /v1/anomalies/456e7890-e89b-12d3-a456-426614174001
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Scan or anomaly not found.
+        "500":
+          content:
+            application/json:
+              example:
+                status: 500
+                errorCode: BILLING_API_ERROR
+                message: Failed to fetch cost data from AWS Cost Explorer. Retrying.
+                timestamp: 2026-11-24T10:30:00Z
+                path: /v1/scans
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected server error.
+      summary: Get the status and results of a detection scan
+      tags:
+      - Anomalies
+      x-accepts: application/json
+      x-tags:
+      - tag: Anomalies
+  /anomalies:
+    get:
+      description: "Returns all cost anomalies detected across the organization. Supports\
+        \ \nfiltering by severity, cloud provider, service, team, and time window.\
+        \ \nSortable by cost impact, discovery time, or confidence. This is the \n\
+        primary \"morning coffee\" view for FinOps teams and engineering leaders.\n"
+      operationId: listAnomalies
+      parameters:
+      - description: Filter by anomaly severity.
+        example: HIGH
+        explode: true
+        in: query
+        name: severity
+        required: false
+        schema:
+          enum:
+          - INFO
+          - LOW
+          - MEDIUM
+          - HIGH
+          - CRITICAL
+          type: string
+        style: form
+      - description: Filter by cloud provider.
+        example: AWS
+        explode: true
+        in: query
+        name: cloudProvider
+        required: false
+        schema:
+          enum:
+          - AWS
+          - GCP
+          - AZURE
+          - ALL
+          type: string
+        style: form
+      - description: "Filter by cloud service (e.g., compute, database)."
+        example: compute
+        explode: true
+        in: query
+        name: service
+        required: false
+        schema:
+          type: string
+        style: form
+      - description: Filter by owning team.
+        example: payments-team
+        explode: true
+        in: query
+        name: team
+        required: false
+        schema:
+          type: string
+        style: form
+      - description: Filter by anomaly status.
+        example: OPEN
+        explode: true
+        in: query
+        name: status
+        required: false
+        schema:
+          enum:
+          - OPEN
+          - ACKNOWLEDGED
+          - INVESTIGATING
+          - RESOLVED
+          - SUPPRESSED
+          - FALSE_POSITIVE
+          type: string
+        style: form
+      - description: Only include anomalies detected after this time.
+        example: 2026-11-20T00:00:00Z
+        explode: true
+        in: query
+        name: fromDate
+        required: false
+        schema:
+          format: date-time
+          type: string
+        style: form
+      - description: Only include anomalies detected before this time.
+        example: 2026-11-24T23:59:59Z
+        explode: true
+        in: query
+        name: toDate
+        required: false
+        schema:
+          format: date-time
+          type: string
+        style: form
+      - description: Only include anomalies with cost impact above this.
+        example: 100.0
+        explode: true
+        in: query
+        name: minCostImpactUSD
+        required: false
+        schema:
+          format: double
+          minimum: 0
+          type: number
+        style: form
+      - description: Sort order.
+        example: COST_IMPACT
+        explode: true
+        in: query
+        name: sortBy
+        required: false
+        schema:
+          default: COST_IMPACT
+          enum:
+          - COST_IMPACT
+          - DETECTED_AT
+          - SEVERITY
+          - PERCENT_DEVIATION
+          type: string
+        style: form
+      - description: Page number (zero-based).
+        example: 0
+        explode: true
+        in: query
+        name: page
+        required: false
+        schema:
+          default: 0
+          minimum: 0
+          type: integer
+        style: form
+      - description: Number of items per page.
+        example: 20
+        explode: true
+        in: query
+        name: size
+        required: false
+        schema:
+          default: 20
+          maximum: 100
+          minimum: 1
+          type: integer
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnomalyList"
+          description: Paginated list of cost anomalies.
+        "400":
+          content:
+            application/json:
+              example:
+                status: 400
+                errorCode: VALIDATION_ERROR
+                message: cloudProviders must contain at least one valid provider.
+                timestamp: 2026-11-24T10:30:00Z
+                path: /v1/scans
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Invalid request payload or parameters.
+        "401":
+          content:
+            application/json:
+              example:
+                status: 401
+                errorCode: UNAUTHORIZED
+                message: Missing or expired authentication token.
+                timestamp: 2026-11-24T10:30:00Z
+                path: /v1/anomalies
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Missing or invalid authentication token.
+        "500":
+          content:
+            application/json:
+              example:
+                status: 500
+                errorCode: BILLING_API_ERROR
+                message: Failed to fetch cost data from AWS Cost Explorer. Retrying.
+                timestamp: 2026-11-24T10:30:00Z
+                path: /v1/scans
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected server error.
+      summary: List detected cost anomalies
+      tags:
+      - Anomalies
+      x-accepts: application/json
+      x-tags:
+      - tag: Anomalies
+  /anomalies/{anomalyId}:
+    get:
+      description: "Returns the full analysis of a single anomaly — including resource-level\
+        \ \nbreakdown, affected services, probable root cause (deployment, config\
+        \ \nchange, traffic surge), attribution to team/cost center, and \nrecommended\
+        \ remediation. Includes historical baseline vs actual spend \nchart data.\n"
+      operationId: getAnomaly
+      parameters:
+      - description: Unique identifier of the anomaly.
+        example: 456e7890-e89b-12d3-a456-426614174001
+        explode: false
+        in: path
+        name: anomalyId
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      - description: Include hourly spend timeline for the anomaly window.
+        example: true
+        explode: true
+        in: query
+        name: includeTimeline
+        required: false
+        schema:
+          default: true
+          type: boolean
+        style: form
+      - description: Include correlated deployments and config changes.
+        example: true
+        explode: true
+        in: query
+        name: includeRelatedChanges
+        required: false
+        schema:
+          default: true
+          type: boolean
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Anomaly"
+          description: Anomaly details retrieved successfully.
+        "401":
+          content:
+            application/json:
+              example:
+                status: 401
+                errorCode: UNAUTHORIZED
+                message: Missing or expired authentication token.
+                timestamp: 2026-11-24T10:30:00Z
+                path: /v1/anomalies
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Missing or invalid authentication token.
+        "404":
+          content:
+            application/json:
+              example:
+                status: 404
+                errorCode: ANOMALY_NOT_FOUND
+                message: No anomaly found with ID 456e7890-e89b-12d3-a456-426614174001.
+                timestamp: 2026-11-24T10:30:00Z
+                path: /v1/anomalies/456e7890-e89b-12d3-a456-426614174001
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Scan or anomaly not found.
+        "500":
+          content:
+            application/json:
+              example:
+                status: 500
+                errorCode: BILLING_API_ERROR
+                message: Failed to fetch cost data from AWS Cost Explorer. Retrying.
+                timestamp: 2026-11-24T10:30:00Z
+                path: /v1/scans
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected server error.
+      summary: Get detailed root-cause analysis of a cost anomaly
+      tags:
+      - Anomalies
+      x-accepts: application/json
+      x-tags:
+      - tag: Anomalies
+  /anomalies/{anomalyId}/action:
+    post:
+      description: "Updates the lifecycle state of an anomaly. Actions: ACKNOWLEDGE\
+        \ (seen, \nno action yet), INVESTIGATE (assigned to an engineer), RESOLVE\
+        \ (fixed, \nwith resolution notes), SUPPRESS (known/expected, future similar\
+        \ \nalerts muted), FALSE_POSITIVE (model was wrong). Every action is \naudit-logged\
+        \ and feeds the ML model to reduce future false positives.\n"
+      operationId: takeAnomalyAction
+      parameters:
+      - description: Unique identifier of the anomaly.
+        example: 456e7890-e89b-12d3-a456-426614174001
+        explode: false
+        in: path
+        name: anomalyId
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            example:
+              action: RESOLVE
+              reason: Stopped runaway Lambda recursion; deployed fix via feature flag.
+              performedBy: payments-engineer@forgesphere.example.com
+              resolutionType: CONFIGURATION_FIX
+              actualCostImpactUSD: 12450.0
+              preventRecurrence: Added rate limit on Lambda invocation.
+            schema:
+              $ref: "#/components/schemas/AnomalyActionRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Anomaly"
+          description: Action recorded and anomaly state updated.
+        "400":
+          content:
+            application/json:
+              example:
+                status: 400
+                errorCode: VALIDATION_ERROR
+                message: cloudProviders must contain at least one valid provider.
+                timestamp: 2026-11-24T10:30:00Z
+                path: /v1/scans
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Invalid request payload or parameters.
+        "401":
+          content:
+            application/json:
+              example:
+                status: 401
+                errorCode: UNAUTHORIZED
+                message: Missing or expired authentication token.
+                timestamp: 2026-11-24T10:30:00Z
+                path: /v1/anomalies
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Missing or invalid authentication token.
+        "404":
+          content:
+            application/json:
+              example:
+                status: 404
+                errorCode: ANOMALY_NOT_FOUND
+                message: No anomaly found with ID 456e7890-e89b-12d3-a456-426614174001.
+                timestamp: 2026-11-24T10:30:00Z
+                path: /v1/anomalies/456e7890-e89b-12d3-a456-426614174001
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Scan or anomaly not found.
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Anomaly is not in a state that supports this action.
+        "500":
+          content:
+            application/json:
+              example:
+                status: 500
+                errorCode: BILLING_API_ERROR
+                message: Failed to fetch cost data from AWS Cost Explorer. Retrying.
+                timestamp: 2026-11-24T10:30:00Z
+                path: /v1/scans
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+          description: Unexpected server error.
+      summary: "Acknowledge, investigate, resolve, or suppress an anomaly"
+      tags:
+      - Actions
+      x-content-type: application/json
+      x-accepts: application/json
+      x-tags:
+      - tag: Actions
+components:
+  responses:
+    BadRequest:
+      content:
+        application/json:
+          example:
+            status: 400
+            errorCode: VALIDATION_ERROR
+            message: cloudProviders must contain at least one valid provider.
+            timestamp: 2026-11-24T10:30:00Z
+            path: /v1/scans
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+      description: Invalid request payload or parameters.
+    Unauthorized:
+      content:
+        application/json:
+          example:
+            status: 401
+            errorCode: UNAUTHORIZED
+            message: Missing or expired authentication token.
+            timestamp: 2026-11-24T10:30:00Z
+            path: /v1/anomalies
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+      description: Missing or invalid authentication token.
+    NotFound:
+      content:
+        application/json:
+          example:
+            status: 404
+            errorCode: ANOMALY_NOT_FOUND
+            message: No anomaly found with ID 456e7890-e89b-12d3-a456-426614174001.
+            timestamp: 2026-11-24T10:30:00Z
+            path: /v1/anomalies/456e7890-e89b-12d3-a456-426614174001
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+      description: Scan or anomaly not found.
+    InternalError:
+      content:
+        application/json:
+          example:
+            status: 500
+            errorCode: BILLING_API_ERROR
+            message: Failed to fetch cost data from AWS Cost Explorer. Retrying.
+            timestamp: 2026-11-24T10:30:00Z
+            path: /v1/scans
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+      description: Unexpected server error.
+  schemas:
+    DetectionScan:
+      example:
+        summary:
+          totalSpendInWindowUSD: 18420.5
+          expectedSpendUSD: 12450.0
+          actualDeviationUSD: 5970.5
+          actualDeviationPercent: 48.0
+        lookbackHours: 6
+        completedAt: 2000-01-23T04:56:07.000+00:00
+        durationSeconds: 42
+        scanId: 123e4567-e89b-12d3-a456-426614174000
+        errorMessage: errorMessage
+        startedAt: 2000-01-23T04:56:07.000+00:00
+        cloudProviders:
+        - AWS
+        - GCP
+        sensitivityLevel: MEDIUM
+        anomalies:
+        - auditReference: audit://cost-anomaly/anomaly-456e7890
+          resolutionType: THROTTLING_ADDED
+          resolvedBy: resolvedBy
+          serviceDetail: Lambda
+          description: "Lambda invocation count jumped from 120K to 12M/hour, costing\
+            \ $84/hour vs expected $8/hour."
+          acknowledgedBy: oncall@forgesphere.example.com
+          title: AWS Lambda spend spiked 340% — likely runaway recursion
+          anomalyWindowEnd: 2026-11-24T08:00:00Z
+          assignedTo: payments-engineer@forgesphere.example.com
+          spendTimeline:
+          - hour: 2026-11-24T07:00:00Z
+            expectedCostUSD: 38.2
+            actualCostUSD: 168.0
+          - hour: 2026-11-24T07:00:00Z
+            expectedCostUSD: 38.2
+            actualCostUSD: 168.0
+          aiSummary: "CRITICAL: AWS Lambda spend spiked 340% ($168/hr vs $38/hr baseline).\
+            \ Root cause: recursive S3 trigger; 12M invocations/hour vs 120K normal.\
+            \ Projected monthly cost if unfixed: $62,000. Deploy at 07:05 UTC is likely\
+            \ trigger. Recommend: throttle concurrency + fix S3 lifecycle."
+          cloudProvider: AWS
+          anomalyWindowStart: 2026-11-24T07:00:00Z
+          relatedChanges:
+          - summary: payments-team deployed v2.5.0 to Lambda authorizer function.
+            occurredAt: 2026-11-24T07:05:00Z
+            changeType: DEPLOYMENT
+            changeId: deploy-abc123
+            correlationConfidence: 0.92
+          - summary: payments-team deployed v2.5.0 to Lambda authorizer function.
+            occurredAt: 2026-11-24T07:05:00Z
+            changeType: DEPLOYMENT
+            changeId: deploy-abc123
+            correlationConfidence: 0.92
+          actualCostImpactUSD: 12450.0
+          detectedAt: 2026-11-24T08:15:00Z
+          recommendedActions:
+          - Throttle Lambda concurrent executions to 100 (currently unlimited).
+          - Fix S3 bucket lifecycle policy to prevent recursive writes.
+          - Add CloudWatch alarm for invocation count > 1M/hour.
+          severity: CRITICAL
+          costImpact:
+            projectedMonthlyCostUSD: 62000.0
+            expectedCostUSD: 38.2
+            actualCostUSD: 168.0
+            deviationPercent: 340.0
+            deviationUSD: 129.8
+          resolvedAt: 2000-01-23T04:56:07.000+00:00
+          probableRootCause:
+            evidence:
+            - "Invocation count: 120K/hr → 12M/hr"
+            - "Duration: 45ms avg unchanged"
+            - "Trigger source: S3 event on same bucket function writes to"
+            confidence: 0.89
+            description: Lambda function likely stuck in recursive S3 trigger loop;
+              invocation count 100x normal.
+            category: RECURSION
+          scanId: 123e4567-e89b-12d3-a456-426614174000
+          confidence: 0.96
+          percentDeviation: 340.0
+          acknowledgedAt: 2000-01-23T04:56:07.000+00:00
+          anomalyId: 456e7890-e89b-12d3-a456-426614174001
+          service: compute
+          attribution:
+            environment: PRODUCTION
+            application: payment-processor
+            trafficChange: "10,000% increase in invocation count"
+            costCenter: CC-PAYMENTS-001
+            team: payments-team
+            resourceIds:
+            - arn:aws:lambda:us-east-1:123:function:payment-processor-authorize
+          region: us-east-1
+          status: OPEN
+        - auditReference: audit://cost-anomaly/anomaly-456e7890
+          resolutionType: THROTTLING_ADDED
+          resolvedBy: resolvedBy
+          serviceDetail: Lambda
+          description: "Lambda invocation count jumped from 120K to 12M/hour, costing\
+            \ $84/hour vs expected $8/hour."
+          acknowledgedBy: oncall@forgesphere.example.com
+          title: AWS Lambda spend spiked 340% — likely runaway recursion
+          anomalyWindowEnd: 2026-11-24T08:00:00Z
+          assignedTo: payments-engineer@forgesphere.example.com
+          spendTimeline:
+          - hour: 2026-11-24T07:00:00Z
+            expectedCostUSD: 38.2
+            actualCostUSD: 168.0
+          - hour: 2026-11-24T07:00:00Z
+            expectedCostUSD: 38.2
+            actualCostUSD: 168.0
+          aiSummary: "CRITICAL: AWS Lambda spend spiked 340% ($168/hr vs $38/hr baseline).\
+            \ Root cause: recursive S3 trigger; 12M invocations/hour vs 120K normal.\
+            \ Projected monthly cost if unfixed: $62,000. Deploy at 07:05 UTC is likely\
+            \ trigger. Recommend: throttle concurrency + fix S3 lifecycle."
+          cloudProvider: AWS
+          anomalyWindowStart: 2026-11-24T07:00:00Z
+          relatedChanges:
+          - summary: payments-team deployed v2.5.0 to Lambda authorizer function.
+            occurredAt: 2026-11-24T07:05:00Z
+            changeType: DEPLOYMENT
+            changeId: deploy-abc123
+            correlationConfidence: 0.92
+          - summary: payments-team deployed v2.5.0 to Lambda authorizer function.
+            occurredAt: 2026-11-24T07:05:00Z
+            changeType: DEPLOYMENT
+            changeId: deploy-abc123
+            correlationConfidence: 0.92
+          actualCostImpactUSD: 12450.0
+          detectedAt: 2026-11-24T08:15:00Z
+          recommendedActions:
+          - Throttle Lambda concurrent executions to 100 (currently unlimited).
+          - Fix S3 bucket lifecycle policy to prevent recursive writes.
+          - Add CloudWatch alarm for invocation count > 1M/hour.
+          severity: CRITICAL
+          costImpact:
+            projectedMonthlyCostUSD: 62000.0
+            expectedCostUSD: 38.2
+            actualCostUSD: 168.0
+            deviationPercent: 340.0
+            deviationUSD: 129.8
+          resolvedAt: 2000-01-23T04:56:07.000+00:00
+          probableRootCause:
+            evidence:
+            - "Invocation count: 120K/hr → 12M/hr"
+            - "Duration: 45ms avg unchanged"
+            - "Trigger source: S3 event on same bucket function writes to"
+            confidence: 0.89
+            description: Lambda function likely stuck in recursive S3 trigger loop;
+              invocation count 100x normal.
+            category: RECURSION
+          scanId: 123e4567-e89b-12d3-a456-426614174000
+          confidence: 0.96
+          percentDeviation: 340.0
+          acknowledgedAt: 2000-01-23T04:56:07.000+00:00
+          anomalyId: 456e7890-e89b-12d3-a456-426614174001
+          service: compute
+          attribution:
+            environment: PRODUCTION
+            application: payment-processor
+            trafficChange: "10,000% increase in invocation count"
+            costCenter: CC-PAYMENTS-001
+            team: payments-team
+            resourceIds:
+            - arn:aws:lambda:us-east-1:123:function:payment-processor-authorize
+          region: us-east-1
+          status: OPEN
+        anomaliesDetected: 3
+        status: COMPLETED
+      properties:
+        scanId:
+          description: Unique identifier of the scan.
+          example: 123e4567-e89b-12d3-a456-426614174000
+          format: uuid
+          type: string
+        status:
+          description: Current scan state.
+          enum:
+          - QUEUED
+          - FETCHING_BILLING_DATA
+          - BUILDING_BASELINES
+          - DETECTING
+          - ANALYZING
+          - COMPLETED
+          - FAILED
+          example: COMPLETED
+          type: string
+        cloudProviders:
+          example:
+          - AWS
+          - GCP
+          items:
+            enum:
+            - AWS
+            - GCP
+            - AZURE
+            type: string
+          type: array
+        lookbackHours:
+          description: How far back the scan analyzed.
+          example: 6
+          maximum: 168
+          minimum: 1
+          type: integer
+        sensitivityLevel:
+          description: Detection sensitivity — higher catches more but more false
+            positives.
+          enum:
+          - LOW
+          - MEDIUM
+          - HIGH
+          - CRITICAL
+          example: MEDIUM
+          type: string
+        startedAt:
+          format: date-time
+          type: string
+        completedAt:
+          format: date-time
+          type: string
+        durationSeconds:
+          example: 42
+          type: integer
+        anomaliesDetected:
+          description: Number of anomalies flagged.
+          example: 3
+          type: integer
+        summary:
+          $ref: "#/components/schemas/DetectionScan_summary"
+        anomalies:
+          description: Full anomaly list (if includeAnomalies=true).
+          items:
+            $ref: "#/components/schemas/Anomaly"
+          type: array
+        errorMessage:
+          description: Populated if status = FAILED.
+          type: string
+      required:
+      - anomaliesDetected
+      - cloudProviders
+      - lookbackHours
+      - scanId
+      - startedAt
+      - status
+      - summary
+      type: object
+    Anomaly:
+      example:
+        auditReference: audit://cost-anomaly/anomaly-456e7890
+        resolutionType: THROTTLING_ADDED
+        resolvedBy: resolvedBy
+        serviceDetail: Lambda
+        description: "Lambda invocation count jumped from 120K to 12M/hour, costing\
+          \ $84/hour vs expected $8/hour."
+        acknowledgedBy: oncall@forgesphere.example.com
+        title: AWS Lambda spend spiked 340% — likely runaway recursion
+        anomalyWindowEnd: 2026-11-24T08:00:00Z
+        assignedTo: payments-engineer@forgesphere.example.com
+        spendTimeline:
+        - hour: 2026-11-24T07:00:00Z
+          expectedCostUSD: 38.2
+          actualCostUSD: 168.0
+        - hour: 2026-11-24T07:00:00Z
+          expectedCostUSD: 38.2
+          actualCostUSD: 168.0
+        aiSummary: "CRITICAL: AWS Lambda spend spiked 340% ($168/hr vs $38/hr baseline).\
+          \ Root cause: recursive S3 trigger; 12M invocations/hour vs 120K normal.\
+          \ Projected monthly cost if unfixed: $62,000. Deploy at 07:05 UTC is likely\
+          \ trigger. Recommend: throttle concurrency + fix S3 lifecycle."
+        cloudProvider: AWS
+        anomalyWindowStart: 2026-11-24T07:00:00Z
+        relatedChanges:
+        - summary: payments-team deployed v2.5.0 to Lambda authorizer function.
+          occurredAt: 2026-11-24T07:05:00Z
+          changeType: DEPLOYMENT
+          changeId: deploy-abc123
+          correlationConfidence: 0.92
+        - summary: payments-team deployed v2.5.0 to Lambda authorizer function.
+          occurredAt: 2026-11-24T07:05:00Z
+          changeType: DEPLOYMENT
+          changeId: deploy-abc123
+          correlationConfidence: 0.92
+        actualCostImpactUSD: 12450.0
+        detectedAt: 2026-11-24T08:15:00Z
+        recommendedActions:
+        - Throttle Lambda concurrent executions to 100 (currently unlimited).
+        - Fix S3 bucket lifecycle policy to prevent recursive writes.
+        - Add CloudWatch alarm for invocation count > 1M/hour.
+        severity: CRITICAL
+        costImpact:
+          projectedMonthlyCostUSD: 62000.0
+          expectedCostUSD: 38.2
+          actualCostUSD: 168.0
+          deviationPercent: 340.0
+          deviationUSD: 129.8
+        resolvedAt: 2000-01-23T04:56:07.000+00:00
+        probableRootCause:
+          evidence:
+          - "Invocation count: 120K/hr → 12M/hr"
+          - "Duration: 45ms avg unchanged"
+          - "Trigger source: S3 event on same bucket function writes to"
+          confidence: 0.89
+          description: Lambda function likely stuck in recursive S3 trigger loop;
+            invocation count 100x normal.
+          category: RECURSION
+        scanId: 123e4567-e89b-12d3-a456-426614174000
+        confidence: 0.96
+        percentDeviation: 340.0
+        acknowledgedAt: 2000-01-23T04:56:07.000+00:00
+        anomalyId: 456e7890-e89b-12d3-a456-426614174001
+        service: compute
+        attribution:
+          environment: PRODUCTION
+          application: payment-processor
+          trafficChange: "10,000% increase in invocation count"
+          costCenter: CC-PAYMENTS-001
+          team: payments-team
+          resourceIds:
+          - arn:aws:lambda:us-east-1:123:function:payment-processor-authorize
+        region: us-east-1
+        status: OPEN
+      properties:
+        anomalyId:
+          description: Unique identifier of the anomaly.
+          example: 456e7890-e89b-12d3-a456-426614174001
+          format: uuid
+          type: string
+        scanId:
+          description: Scan that detected this anomaly.
+          example: 123e4567-e89b-12d3-a456-426614174000
+          format: uuid
+          type: string
+        title:
+          description: Human-readable summary of the anomaly.
+          example: AWS Lambda spend spiked 340% — likely runaway recursion
+          type: string
+        description:
+          description: Detailed description.
+          example: "Lambda invocation count jumped from 120K to 12M/hour, costing\
+            \ $84/hour vs expected $8/hour."
+          type: string
+        severity:
+          description: Anomaly severity based on cost impact.
+          enum:
+          - INFO
+          - LOW
+          - MEDIUM
+          - HIGH
+          - CRITICAL
+          example: CRITICAL
+          type: string
+        status:
+          description: Lifecycle state.
+          enum:
+          - OPEN
+          - ACKNOWLEDGED
+          - INVESTIGATING
+          - RESOLVED
+          - SUPPRESSED
+          - FALSE_POSITIVE
+          example: OPEN
+          type: string
+        cloudProvider:
+          description: Cloud provider.
+          enum:
+          - AWS
+          - GCP
+          - AZURE
+          example: AWS
+          type: string
+        service:
+          description: Cloud service category.
+          example: compute
+          type: string
+        serviceDetail:
+          description: "Specific service (e.g., 'Lambda', 'EC2', 'RDS')."
+          example: Lambda
+          type: string
+        region:
+          description: Cloud region.
+          example: us-east-1
+          type: string
+        detectedAt:
+          description: When the anomaly was first detected.
+          example: 2026-11-24T08:15:00Z
+          format: date-time
+          type: string
+        anomalyWindowStart:
+          example: 2026-11-24T07:00:00Z
+          format: date-time
+          type: string
+        anomalyWindowEnd:
+          example: 2026-11-24T08:00:00Z
+          format: date-time
+          type: string
+        costImpact:
+          $ref: "#/components/schemas/Anomaly_costImpact"
+        percentDeviation:
+          description: Percent above baseline.
+          example: 340.0
+          format: double
+          type: number
+        confidence:
+          description: ML model confidence that this is a real anomaly (not normal
+            fluctuation).
+          example: 0.96
+          format: double
+          maximum: 1
+          minimum: 0
+          type: number
+        attribution:
+          $ref: "#/components/schemas/Anomaly_attribution"
+        probableRootCause:
+          $ref: "#/components/schemas/Anomaly_probableRootCause"
+        relatedChanges:
+          description: "Deployments, config changes, or incidents in the anomaly window."
+          items:
+            $ref: "#/components/schemas/Anomaly_relatedChanges_inner"
+          type: array
+        spendTimeline:
+          description: Hourly spend data (if includeTimeline=true).
+          items:
+            $ref: "#/components/schemas/Anomaly_spendTimeline_inner"
+          type: array
+        recommendedActions:
+          description: Concrete remediation suggestions from the anomaly model.
+          example:
+          - Throttle Lambda concurrent executions to 100 (currently unlimited).
+          - Fix S3 bucket lifecycle policy to prevent recursive writes.
+          - Add CloudWatch alarm for invocation count > 1M/hour.
+          items:
+            type: string
+          type: array
+        assignedTo:
+          example: payments-engineer@forgesphere.example.com
+          type: string
+        acknowledgedAt:
+          format: date-time
+          type: string
+        acknowledgedBy:
+          example: oncall@forgesphere.example.com
+          type: string
+        resolvedAt:
+          format: date-time
+          type: string
+        resolvedBy:
+          type: string
+        resolutionType:
+          enum:
+          - CONFIGURATION_FIX
+          - CODE_FIX
+          - RESOURCE_TERMINATION
+          - SCALING_CHANGE
+          - THROTTLING_ADDED
+          - NO_ACTION_NEEDED
+          - FALSE_POSITIVE
+          example: THROTTLING_ADDED
+          type: string
+        actualCostImpactUSD:
+          description: Realized cost impact after resolution.
+          example: 12450.0
+          format: double
+          type: number
+        aiSummary:
+          description: AI-generated plain-English summary.
+          example: "CRITICAL: AWS Lambda spend spiked 340% ($168/hr vs $38/hr baseline).\
+            \ Root cause: recursive S3 trigger; 12M invocations/hour vs 120K normal.\
+            \ Projected monthly cost if unfixed: $62,000. Deploy at 07:05 UTC is likely\
+            \ trigger. Recommend: throttle concurrency + fix S3 lifecycle."
+          type: string
+        auditReference:
+          example: audit://cost-anomaly/anomaly-456e7890
+          type: string
+      required:
+      - anomalyId
+      - cloudProvider
+      - confidence
+      - costImpact
+      - detectedAt
+      - percentDeviation
+      - scanId
+      - service
+      - severity
+      - status
+      - title
+      type: object
+    TriggerScanRequest:
+      example:
+        lookbackHours: 6
+        excludeExpectedEvents: true
+        minCostImpactUSD: 10.0
+        cloudProviders:
+        - AWS
+        - GCP
+        sensitivityLevel: MEDIUM
+        includeServices:
+        - compute
+        - database
+        - storage
+        - network
+        correlationWindowMinutes: 30
+      properties:
+        cloudProviders:
+          description: Clouds to scan.
+          example:
+          - AWS
+          - GCP
+          items:
+            enum:
+            - AWS
+            - GCP
+            - AZURE
+            type: string
+          minItems: 1
+          type: array
+        lookbackHours:
+          description: How far back to analyze (1-168 hours).
+          example: 6
+          maximum: 168
+          minimum: 1
+          type: integer
+        sensitivityLevel:
+          description: Detection sensitivity.
+          enum:
+          - LOW
+          - MEDIUM
+          - HIGH
+          - CRITICAL
+          example: MEDIUM
+          type: string
+        includeServices:
+          description: Service categories to include (empty = all).
+          example:
+          - compute
+          - database
+          - storage
+          - network
+          items:
+            enum:
+            - compute
+            - database
+            - storage
+            - network
+            - ai_ml
+            - analytics
+            - messaging
+            - other
+            type: string
+          type: array
+        excludeExpectedEvents:
+          default: true
+          description: "Whether to suppress anomalies matching known events (Black\
+            \ Friday, launches)."
+          example: true
+          type: boolean
+        correlationWindowMinutes:
+          default: 30
+          description: "How far to look for correlated changes (deploys, incidents)."
+          example: 30
+          maximum: 120
+          minimum: 0
+          type: integer
+        minCostImpactUSD:
+          default: 10.0
+          description: Ignore anomalies below this USD impact.
+          example: 10.0
+          format: double
+          minimum: 0
+          type: number
+      required:
+      - cloudProviders
+      - lookbackHours
+      - sensitivityLevel
+      type: object
+    AnomalyActionRequest:
+      example:
+        reason: Stopped runaway Lambda recursion; deployed fix via feature flag.
+        performedBy: payments-engineer@forgesphere.example.com
+        resolutionType: THROTTLING_ADDED
+        preventRecurrence: Added rate limit on Lambda invocation; S3 lifecycle policy
+          updated.
+        suppressionRule:
+          matchResourceIds:
+          - arn:aws:lambda:us-east-1:123:function:test-*
+          matchTag:
+            purpose: load-testing
+          expiresAt: 2026-12-31T23:59:59Z
+          matchService: true
+        actualCostImpactUSD: 12450.0
+        action: RESOLVE
+        assignedTo: payments-engineer@forgesphere.example.com
+      properties:
+        action:
+          description: Action to perform.
+          enum:
+          - ACKNOWLEDGE
+          - INVESTIGATE
+          - RESOLVE
+          - SUPPRESS
+          - FALSE_POSITIVE
+          - REOPEN
+          example: RESOLVE
+          type: string
+        reason:
+          description: Justification (min 15 chars).
+          example: Stopped runaway Lambda recursion; deployed fix via feature flag.
+          minLength: 15
+          type: string
+        performedBy:
+          description: Who is performing the action.
+          example: payments-engineer@forgesphere.example.com
+          format: email
+          type: string
+        assignedTo:
+          description: Required when action = INVESTIGATE.
+          example: payments-engineer@forgesphere.example.com
+          format: email
+          type: string
+        resolutionType:
+          description: Required when action = RESOLVE.
+          enum:
+          - CONFIGURATION_FIX
+          - CODE_FIX
+          - RESOURCE_TERMINATION
+          - SCALING_CHANGE
+          - THROTTLING_ADDED
+          - NO_ACTION_NEEDED
+          - FALSE_POSITIVE
+          example: THROTTLING_ADDED
+          type: string
+        actualCostImpactUSD:
+          description: Realized cost impact (required when action = RESOLVE).
+          example: 12450.0
+          format: double
+          type: number
+        preventRecurrence:
+          description: What was done to prevent recurrence (required when action =
+            RESOLVE).
+          example: Added rate limit on Lambda invocation; S3 lifecycle policy updated.
+          type: string
+        suppressionRule:
+          $ref: "#/components/schemas/AnomalyActionRequest_suppressionRule"
+      required:
+      - action
+      - performedBy
+      - reason
+      type: object
+    AnomalyList:
+      example:
+        summary:
+          projectedMonthlyImpactUSD: 124500.0
+          topService: compute
+          acknowledged: 8
+          investigating: 5
+          totalAnomalies: 47
+          open: 12
+          topProvider: AWS
+          resolved: 22
+          totalCostImpactUSD: 28450.0
+        size: 20
+        totalPages: 3
+        page: 0
+        content:
+        - auditReference: audit://cost-anomaly/anomaly-456e7890
+          resolutionType: THROTTLING_ADDED
+          resolvedBy: resolvedBy
+          serviceDetail: Lambda
+          description: "Lambda invocation count jumped from 120K to 12M/hour, costing\
+            \ $84/hour vs expected $8/hour."
+          acknowledgedBy: oncall@forgesphere.example.com
+          title: AWS Lambda spend spiked 340% — likely runaway recursion
+          anomalyWindowEnd: 2026-11-24T08:00:00Z
+          assignedTo: payments-engineer@forgesphere.example.com
+          spendTimeline:
+          - hour: 2026-11-24T07:00:00Z
+            expectedCostUSD: 38.2
+            actualCostUSD: 168.0
+          - hour: 2026-11-24T07:00:00Z
+            expectedCostUSD: 38.2
+            actualCostUSD: 168.0
+          aiSummary: "CRITICAL: AWS Lambda spend spiked 340% ($168/hr vs $38/hr baseline).\
+            \ Root cause: recursive S3 trigger; 12M invocations/hour vs 120K normal.\
+            \ Projected monthly cost if unfixed: $62,000. Deploy at 07:05 UTC is likely\
+            \ trigger. Recommend: throttle concurrency + fix S3 lifecycle."
+          cloudProvider: AWS
+          anomalyWindowStart: 2026-11-24T07:00:00Z
+          relatedChanges:
+          - summary: payments-team deployed v2.5.0 to Lambda authorizer function.
+            occurredAt: 2026-11-24T07:05:00Z
+            changeType: DEPLOYMENT
+            changeId: deploy-abc123
+            correlationConfidence: 0.92
+          - summary: payments-team deployed v2.5.0 to Lambda authorizer function.
+            occurredAt: 2026-11-24T07:05:00Z
+            changeType: DEPLOYMENT
+            changeId: deploy-abc123
+            correlationConfidence: 0.92
+          actualCostImpactUSD: 12450.0
+          detectedAt: 2026-11-24T08:15:00Z
+          recommendedActions:
+          - Throttle Lambda concurrent executions to 100 (currently unlimited).
+          - Fix S3 bucket lifecycle policy to prevent recursive writes.
+          - Add CloudWatch alarm for invocation count > 1M/hour.
+          severity: CRITICAL
+          costImpact:
+            projectedMonthlyCostUSD: 62000.0
+            expectedCostUSD: 38.2
+            actualCostUSD: 168.0
+            deviationPercent: 340.0
+            deviationUSD: 129.8
+          resolvedAt: 2000-01-23T04:56:07.000+00:00
+          probableRootCause:
+            evidence:
+            - "Invocation count: 120K/hr → 12M/hr"
+            - "Duration: 45ms avg unchanged"
+            - "Trigger source: S3 event on same bucket function writes to"
+            confidence: 0.89
+            description: Lambda function likely stuck in recursive S3 trigger loop;
+              invocation count 100x normal.
+            category: RECURSION
+          scanId: 123e4567-e89b-12d3-a456-426614174000
+          confidence: 0.96
+          percentDeviation: 340.0
+          acknowledgedAt: 2000-01-23T04:56:07.000+00:00
+          anomalyId: 456e7890-e89b-12d3-a456-426614174001
+          service: compute
+          attribution:
+            environment: PRODUCTION
+            application: payment-processor
+            trafficChange: "10,000% increase in invocation count"
+            costCenter: CC-PAYMENTS-001
+            team: payments-team
+            resourceIds:
+            - arn:aws:lambda:us-east-1:123:function:payment-processor-authorize
+          region: us-east-1
+          status: OPEN
+        - auditReference: audit://cost-anomaly/anomaly-456e7890
+          resolutionType: THROTTLING_ADDED
+          resolvedBy: resolvedBy
+          serviceDetail: Lambda
+          description: "Lambda invocation count jumped from 120K to 12M/hour, costing\
+            \ $84/hour vs expected $8/hour."
+          acknowledgedBy: oncall@forgesphere.example.com
+          title: AWS Lambda spend spiked 340% — likely runaway recursion
+          anomalyWindowEnd: 2026-11-24T08:00:00Z
+          assignedTo: payments-engineer@forgesphere.example.com
+          spendTimeline:
+          - hour: 2026-11-24T07:00:00Z
+            expectedCostUSD: 38.2
+            actualCostUSD: 168.0
+          - hour: 2026-11-24T07:00:00Z
+            expectedCostUSD: 38.2
+            actualCostUSD: 168.0
+          aiSummary: "CRITICAL: AWS Lambda spend spiked 340% ($168/hr vs $38/hr baseline).\
+            \ Root cause: recursive S3 trigger; 12M invocations/hour vs 120K normal.\
+            \ Projected monthly cost if unfixed: $62,000. Deploy at 07:05 UTC is likely\
+            \ trigger. Recommend: throttle concurrency + fix S3 lifecycle."
+          cloudProvider: AWS
+          anomalyWindowStart: 2026-11-24T07:00:00Z
+          relatedChanges:
+          - summary: payments-team deployed v2.5.0 to Lambda authorizer function.
+            occurredAt: 2026-11-24T07:05:00Z
+            changeType: DEPLOYMENT
+            changeId: deploy-abc123
+            correlationConfidence: 0.92
+          - summary: payments-team deployed v2.5.0 to Lambda authorizer function.
+            occurredAt: 2026-11-24T07:05:00Z
+            changeType: DEPLOYMENT
+            changeId: deploy-abc123
+            correlationConfidence: 0.92
+          actualCostImpactUSD: 12450.0
+          detectedAt: 2026-11-24T08:15:00Z
+          recommendedActions:
+          - Throttle Lambda concurrent executions to 100 (currently unlimited).
+          - Fix S3 bucket lifecycle policy to prevent recursive writes.
+          - Add CloudWatch alarm for invocation count > 1M/hour.
+          severity: CRITICAL
+          costImpact:
+            projectedMonthlyCostUSD: 62000.0
+            expectedCostUSD: 38.2
+            actualCostUSD: 168.0
+            deviationPercent: 340.0
+            deviationUSD: 129.8
+          resolvedAt: 2000-01-23T04:56:07.000+00:00
+          probableRootCause:
+            evidence:
+            - "Invocation count: 120K/hr → 12M/hr"
+            - "Duration: 45ms avg unchanged"
+            - "Trigger source: S3 event on same bucket function writes to"
+            confidence: 0.89
+            description: Lambda function likely stuck in recursive S3 trigger loop;
+              invocation count 100x normal.
+            category: RECURSION
+          scanId: 123e4567-e89b-12d3-a456-426614174000
+          confidence: 0.96
+          percentDeviation: 340.0
+          acknowledgedAt: 2000-01-23T04:56:07.000+00:00
+          anomalyId: 456e7890-e89b-12d3-a456-426614174001
+          service: compute
+          attribution:
+            environment: PRODUCTION
+            application: payment-processor
+            trafficChange: "10,000% increase in invocation count"
+            costCenter: CC-PAYMENTS-001
+            team: payments-team
+            resourceIds:
+            - arn:aws:lambda:us-east-1:123:function:payment-processor-authorize
+          region: us-east-1
+          status: OPEN
+        totalElements: 47
+      properties:
+        content:
+          items:
+            $ref: "#/components/schemas/Anomaly"
+          type: array
+        page:
+          example: 0
+          minimum: 0
+          type: integer
+        size:
+          example: 20
+          minimum: 1
+          type: integer
+        totalElements:
+          example: 47
+          minimum: 0
+          type: integer
+        totalPages:
+          example: 3
+          minimum: 0
+          type: integer
+        summary:
+          $ref: "#/components/schemas/AnomalyList_summary"
+      required:
+      - content
+      - page
+      - size
+      - totalElements
+      - totalPages
+      type: object
+    ErrorResponse:
+      properties:
+        status:
+          description: HTTP status code.
+          example: 400
+          type: integer
+        errorCode:
+          description: Application-specific error code.
+          example: INVALID_SCAN_WINDOW
+          type: string
+        message:
+          description: Human-readable error message.
+          example: lookbackHours must be between 1 and 168.
+          type: string
+        timestamp:
+          example: 2026-11-24T10:30:00Z
+          format: date-time
+          type: string
+        path:
+          description: API path where error occurred.
+          example: /v1/scans
+          type: string
+        serviceTransactionId:
+          description: Trace ID for debugging.
+          example: 523f52b2-64a5-465e-b245-3efbe78f70ae
+          type: string
+      required:
+      - message
+      - path
+      - status
+      - timestamp
+      type: object
+    DetectionScan_summary:
+      example:
+        totalSpendInWindowUSD: 18420.5
+        expectedSpendUSD: 12450.0
+        actualDeviationUSD: 5970.5
+        actualDeviationPercent: 48.0
+      properties:
+        totalSpendInWindowUSD:
+          description: Total cloud spend in the scan window.
+          example: 18420.5
+          format: double
+          type: number
+        expectedSpendUSD:
+          description: ML-predicted baseline spend.
+          example: 12450.0
+          format: double
+          type: number
+        actualDeviationUSD:
+          description: Difference from baseline.
+          example: 5970.5
+          format: double
+          type: number
+        actualDeviationPercent:
+          description: Deviation as a percentage.
+          example: 48.0
+          format: double
+          type: number
+      required:
+      - actualDeviationPercent
+      - actualDeviationUSD
+      - expectedSpendUSD
+      - totalSpendInWindowUSD
+      type: object
+    Anomaly_costImpact:
+      example:
+        projectedMonthlyCostUSD: 62000.0
+        expectedCostUSD: 38.2
+        actualCostUSD: 168.0
+        deviationPercent: 340.0
+        deviationUSD: 129.8
+      properties:
+        actualCostUSD:
+          description: Actual spend during the anomaly window.
+          example: 168.0
+          format: double
+          type: number
+        expectedCostUSD:
+          description: ML-predicted baseline.
+          example: 38.2
+          format: double
+          type: number
+        deviationUSD:
+          example: 129.8
+          format: double
+          type: number
+        deviationPercent:
+          example: 340.0
+          format: double
+          type: number
+        projectedMonthlyCostUSD:
+          description: Extrapolated monthly cost if anomaly continues.
+          example: 62000.0
+          format: double
+          type: number
+      required:
+      - actualCostUSD
+      - deviationPercent
+      - deviationUSD
+      - expectedCostUSD
+      - projectedMonthlyCostUSD
+      type: object
+    Anomaly_attribution:
+      description: Who/what caused this anomaly.
+      example:
+        environment: PRODUCTION
+        application: payment-processor
+        trafficChange: "10,000% increase in invocation count"
+        costCenter: CC-PAYMENTS-001
+        team: payments-team
+        resourceIds:
+        - arn:aws:lambda:us-east-1:123:function:payment-processor-authorize
+      properties:
+        team:
+          example: payments-team
+          type: string
+        costCenter:
+          example: CC-PAYMENTS-001
+          type: string
+        application:
+          example: payment-processor
+          type: string
+        environment:
+          enum:
+          - DEV
+          - STAGING
+          - PRODUCTION
+          example: PRODUCTION
+          type: string
+        resourceIds:
+          description: Specific resources involved.
+          example:
+          - arn:aws:lambda:us-east-1:123:function:payment-processor-authorize
+          items:
+            type: string
+          type: array
+        trafficChange:
+          description: "If driven by traffic, what happened."
+          example: "10,000% increase in invocation count"
+          type: string
+      type: object
+    Anomaly_probableRootCause:
+      example:
+        evidence:
+        - "Invocation count: 120K/hr → 12M/hr"
+        - "Duration: 45ms avg unchanged"
+        - "Trigger source: S3 event on same bucket function writes to"
+        confidence: 0.89
+        description: Lambda function likely stuck in recursive S3 trigger loop; invocation
+          count 100x normal.
+        category: RECURSION
+      properties:
+        category:
+          enum:
+          - MISCONFIGURATION
+          - CODE_DEPLOY
+          - TRAFFIC_SPIKE
+          - RESOURCE_LEAK
+          - STORAGE_LEAK
+          - CROSS_REGION_TRANSFER
+          - RECURSION
+          - EXPIRED_RESERVATION
+          - SPOT_INTERRUPTION
+          - ATTACK
+          - UNKNOWN
+          example: RECURSION
+          type: string
+        description:
+          example: Lambda function likely stuck in recursive S3 trigger loop; invocation
+            count 100x normal.
+          type: string
+        confidence:
+          example: 0.89
+          format: double
+          type: number
+        evidence:
+          example:
+          - "Invocation count: 120K/hr → 12M/hr"
+          - "Duration: 45ms avg unchanged"
+          - "Trigger source: S3 event on same bucket function writes to"
+          items:
+            type: string
+          type: array
+      type: object
+    Anomaly_relatedChanges_inner:
+      example:
+        summary: payments-team deployed v2.5.0 to Lambda authorizer function.
+        occurredAt: 2026-11-24T07:05:00Z
+        changeType: DEPLOYMENT
+        changeId: deploy-abc123
+        correlationConfidence: 0.92
+      properties:
+        changeType:
+          enum:
+          - DEPLOYMENT
+          - CONFIG_CHANGE
+          - INCIDENT
+          - INFRASTRUCTURE_CHANGE
+          - FEATURE_FLAG_TOGGLE
+          example: DEPLOYMENT
+          type: string
+        changeId:
+          example: deploy-abc123
+          type: string
+        occurredAt:
+          example: 2026-11-24T07:05:00Z
+          format: date-time
+          type: string
+        correlationConfidence:
+          description: How likely this change caused the anomaly.
+          example: 0.92
+          format: double
+          type: number
+        summary:
+          example: payments-team deployed v2.5.0 to Lambda authorizer function.
+          type: string
+      type: object
+    Anomaly_spendTimeline_inner:
+      example:
+        hour: 2026-11-24T07:00:00Z
+        expectedCostUSD: 38.2
+        actualCostUSD: 168.0
+      properties:
+        hour:
+          example: 2026-11-24T07:00:00Z
+          format: date-time
+          type: string
+        actualCostUSD:
+          example: 168.0
+          format: double
+          type: number
+        expectedCostUSD:
+          example: 38.2
+          format: double
+          type: number
+      type: object
+    AnomalyActionRequest_suppressionRule:
+      description: Required when action = SUPPRESS. Mutes future similar anomalies.
+      example:
+        matchResourceIds:
+        - arn:aws:lambda:us-east-1:123:function:test-*
+        matchTag:
+          purpose: load-testing
+        expiresAt: 2026-12-31T23:59:59Z
+        matchService: true
+      properties:
+        matchService:
+          default: true
+          example: true
+          type: boolean
+        matchResourceIds:
+          example:
+          - arn:aws:lambda:us-east-1:123:function:test-*
+          items:
+            type: string
+          type: array
+        matchTag:
+          additionalProperties:
+            type: string
+          example:
+            purpose: load-testing
+          type: object
+        expiresAt:
+          description: Suppression expires automatically.
+          example: 2026-12-31T23:59:59Z
+          format: date-time
+          type: string
+      type: object
+    AnomalyList_summary:
+      description: Aggregate metrics for the current filter.
+      example:
+        projectedMonthlyImpactUSD: 124500.0
+        topService: compute
+        acknowledged: 8
+        investigating: 5
+        totalAnomalies: 47
+        open: 12
+        topProvider: AWS
+        resolved: 22
+        totalCostImpactUSD: 28450.0
+      properties:
+        totalAnomalies:
+          example: 47
+          type: integer
+        open:
+          example: 12
+          type: integer
+        acknowledged:
+          example: 8
+          type: integer
+        investigating:
+          example: 5
+          type: integer
+        resolved:
+          example: 22
+          type: integer
+        totalCostImpactUSD:
+          example: 28450.0
+          format: double
+          type: number
+        projectedMonthlyImpactUSD:
+          description: If all open anomalies persist for a month.
+          example: 124500.0
+          format: double
+          type: number
+        topProvider:
+          example: AWS
+          type: string
+        topService:
+          example: compute
+          type: string
+      type: object
+  securitySchemes:
+    bearerAuth:
+      bearerFormat: JWT
+      description: "JWT token for FinOps engineers, SREs, and service owners."
+      scheme: bearer
+      type: http
